@@ -1,7 +1,6 @@
 #include "raylib.h"
 #include <stdio.h>
 #include <sys/stat.h>
-#include <time.h>
 
 #define WIDTH 500
 #define HEIGHT 500
@@ -9,7 +8,6 @@
 #define FRAGMENT_SHADER "shaders/shader.fs"
 
 // SHADERS
-// TODO: Implement file watcher + hot reload
 
 bool shaderLoaded = false;
 char *vertexShader;
@@ -58,7 +56,7 @@ void CheckForShaderUpdate() {
   };
 }
 
-// Cube
+// Preview
 
 Vector3 cubePos = {0.0f, 0.0f, 0.0f};
 
@@ -70,7 +68,7 @@ Camera camera = {
     .projection = CAMERA_PERSPECTIVE,
 };
 
-void RenderCube() {
+void RenderPreview() {
   float time = GetTime();
 
   UpdateCamera(&camera, CAMERA_ORBITAL);
@@ -79,8 +77,7 @@ void RenderCube() {
   SetShaderValue(shader, shaderLocUTime, &time, SHADER_UNIFORM_FLOAT);
   BeginShaderMode(shader);
 
-  DrawCube(cubePos, 2.0f, 2.0f, 2.0f, RED);
-  DrawCubeWires(cubePos, 2.0f, 2.0f, 2.0f, WHITE);
+  DrawSphereWires(cubePos, 1, 10, 10, RED);
 
   EndShaderMode();
 
@@ -89,33 +86,68 @@ void RenderCube() {
 
 // UTILS
 
+int textSize = 10;
+Vector2 textOrigin = {10, 10};
+Vector2 lastMousePos = {0, 0};
+
+void TrackTextPosition() {
+  if (IsMouseButtonDown(MOUSE_MIDDLE_BUTTON)) {
+    if (lastMousePos.x != 0 && lastMousePos.y != 0) {
+      textOrigin.x += GetMouseX() - lastMousePos.x;
+      textOrigin.y += GetMouseY() - lastMousePos.y;
+    }
+    lastMousePos = (Vector2){GetMouseX(), GetMouseY()};
+  } else {
+    lastMousePos = (Vector2){0, 0};
+  }
+
+  if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_EQUAL)) {
+    if (textSize > 50)
+      return;
+    textSize += 1;
+  }
+
+  if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_MINUS)) {
+    if (textSize < 10)
+      return;
+    textSize -= 1;
+  }
+}
+
 void RenderText() {
-  DrawText(fragmentShader, 10, 10, 12, Fade(BLUE, 0.5f));
-  DrawFPS(10, WIDTH - 30);
+  TrackTextPosition();
+
+  int fsW = MeasureText(fragmentShader, textSize);
+  DrawText(fragmentShader, textOrigin.x, textOrigin.y, textSize, RAYWHITE);
+  DrawText(vertexShader, fsW + textOrigin.x + textSize, textOrigin.y, textSize,
+           RAYWHITE);
+
+  const char *fps = TextFormat("FPS %i", GetFPS());
+  int fpsW = MeasureText(fps, 10);
+  DrawText(fps, GetScreenWidth() - fpsW - 10, 10, 10, RAYWHITE);
 }
 
 int main(void) {
-  SetTraceLogLevel(LOG_TRACE);
+  SetTraceLogLevel(LOG_NONE);
   SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
+  SetWindowState(FLAG_WINDOW_RESIZABLE);
   InitWindow(WIDTH, HEIGHT, "[shadereditor]");
-  SetWindowState(FLAG_WINDOW_HIGHDPI);
   SetTargetFPS(GetMonitorRefreshRate(GetCurrentMonitor()));
   ReloadShaders();
 
   while (!WindowShouldClose()) {
+    SetWindowSize(GetScreenWidth(), GetScreenHeight());
     CheckForShaderUpdate();
     BeginDrawing();
     ClearBackground(BLANK);
 
-    RenderCube();
+    RenderPreview();
     RenderText();
 
     EndDrawing();
   }
 
-  if (shaderLoaded) {
-    ClearShaders();
-  }
+  ClearShaders();
   CloseWindow();
 
   return 0;

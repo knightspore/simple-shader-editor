@@ -12,9 +12,11 @@ out vec3 fragNormal;
 uniform mat4 matModel;
 uniform mat4 matView;
 uniform mat4 matProjection;
+uniform float utime;
 
 void main() {
-    gl_Position = matProjection * matView * matModel * vec4(vertexPosition, 1.0);
+    float pulse = 0.5 + 0.5 * sin(utime);
+    gl_Position = matProjection * matView * matModel * vec4(vertexPosition, 0.5 + pulse);
     fragTexCoord = vertexTexCoord;
     fragColor = vertexColor;
     fragNormal = vertexNormal;
