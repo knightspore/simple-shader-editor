@@ -70,13 +70,15 @@ void RenderCube() {
 // UTILS
 
 void RenderText() {
-  DrawText(fragmentShader, 10, 10, 10, Fade(BLUE, 0.5f));
+  DrawText(fragmentShader, 10, 10, 12, Fade(BLUE, 0.5f));
   DrawFPS(10, WIDTH - 30);
 }
 
 int main(void) {
-  SetWindowState(FLAG_MSAA_4X_HINT);
+  SetTraceLogLevel(LOG_TRACE);
+  SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
   InitWindow(WIDTH, HEIGHT, "[shadereditor]");
+  SetWindowState(FLAG_WINDOW_HIGHDPI);
   SetTargetFPS(GetMonitorRefreshRate(GetCurrentMonitor()));
   LoadShaders();
 
