@@ -31,4 +31,4 @@ init:
 	wget https://raw.githubusercontent.com/raysan5/raylib/refs/heads/master/src/raylib.h
 	wget https://raw.githubusercontent.com/raysan5/raylib/refs/heads/master/src/raymath.h
 
-all: build run
+all: clean build run
