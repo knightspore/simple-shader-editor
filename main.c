@@ -1,27 +1,32 @@
 #include "raylib.h"
+#include <stdio.h>
+#include <sys/stat.h>
+#include <time.h>
 
 #define WIDTH 500
 #define HEIGHT 500
-#define VERTEX_SHADER "shaders/shader.vs"
+#define VERTEX_SHADER_PATH "shaders/shader.vs"
 #define FRAGMENT_SHADER "shaders/shader.fs"
 
 // SHADERS
 // TODO: Implement file watcher + hot reload
 
 bool shaderLoaded = false;
-bool shaderUpdated = false; // TODO: Implement
 char *vertexShader;
 char *fragmentShader;
 Shader shader;
 int shaderLocUTime;
+
+int lastModTimeVs;
+int lastModTimeFs;
 
 void ClearShaders() {
   UnloadShader(shader);
   shaderLoaded = false;
 }
 
-void LoadShaders() {
-  vertexShader = LoadFileText(VERTEX_SHADER);
+void ReloadShaders() {
+  vertexShader = LoadFileText(VERTEX_SHADER_PATH);
   fragmentShader = LoadFileText(FRAGMENT_SHADER);
 
   if (shaderLoaded) {
@@ -32,6 +37,25 @@ void LoadShaders() {
   shaderLoaded = true;
 
   shaderLocUTime = GetShaderLocation(shader, "utime");
+}
+
+void CheckForShaderUpdate() {
+  struct stat fStatVs;
+  struct stat fStatFs;
+  int statvs = stat(VERTEX_SHADER_PATH, &fStatVs);
+  int statfs = stat(FRAGMENT_SHADER, &fStatFs);
+
+  if (statvs == -1 || statfs == -1) {
+    return;
+  }
+
+  if (lastModTimeFs != fStatFs.st_mtime || fStatVs.st_mtime != lastModTimeVs) {
+    printf("::> Reloading shaders\n");
+    ReloadShaders();
+    lastModTimeFs = fStatFs.st_mtime;
+    lastModTimeVs = fStatVs.st_mtime;
+    return;
+  };
 }
 
 // Cube
@@ -47,10 +71,6 @@ Camera camera = {
 };
 
 void RenderCube() {
-  if (shaderUpdated) {
-    // ReloadShaders();
-  }
-
   float time = GetTime();
 
   UpdateCamera(&camera, CAMERA_ORBITAL);
@@ -80,9 +100,10 @@ int main(void) {
   InitWindow(WIDTH, HEIGHT, "[shadereditor]");
   SetWindowState(FLAG_WINDOW_HIGHDPI);
   SetTargetFPS(GetMonitorRefreshRate(GetCurrentMonitor()));
-  LoadShaders();
+  ReloadShaders();
 
   while (!WindowShouldClose()) {
+    CheckForShaderUpdate();
     BeginDrawing();
     ClearBackground(BLANK);
 

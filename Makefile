@@ -24,7 +24,7 @@ run:
 	./shaderedit
 
 clean: 
-	rm ./shaderedit
+	rm -f ./shaderedit
 
 init:
 	rm -f raylib.h raymath.h
