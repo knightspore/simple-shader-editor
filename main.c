@@ -1,17 +1,40 @@
 #include "raylib.h"
-#include "raymath.h"
-#include <math.h>
-#include <stdio.h>
 
 #define WIDTH 500
 #define HEIGHT 500
+#define VERTEX_SHADER "shaders/shader.vs"
+#define FRAGMENT_SHADER "shaders/shader.fs"
 
-// PREVIEW
-// 1. Setup cube to rotate              : DONE
-// 2. rotate function                   : DONE
-// 3. Create 3D Viewport to render cube : DONE
-// 4. Setup camera                      : DONE
-// 5. Render cube
+// SHADERS
+// TODO: Implement file watcher + hot reload
+
+bool shaderLoaded = false;
+bool shaderUpdated = false; // TODO: Implement
+char *vertexShader;
+char *fragmentShader;
+Shader shader;
+int shaderLocUTime;
+
+void ClearShaders() {
+  UnloadShader(shader);
+  shaderLoaded = false;
+}
+
+void LoadShaders() {
+  vertexShader = LoadFileText(VERTEX_SHADER);
+  fragmentShader = LoadFileText(FRAGMENT_SHADER);
+
+  if (shaderLoaded) {
+    ClearShaders();
+  }
+
+  shader = LoadShaderFromMemory(vertexShader, fragmentShader);
+  shaderLoaded = true;
+
+  shaderLocUTime = GetShaderLocation(shader, "utime");
+}
+
+// Cube
 
 Vector3 cubePos = {0.0f, 0.0f, 0.0f};
 
@@ -23,43 +46,53 @@ Camera camera = {
     .projection = CAMERA_PERSPECTIVE,
 };
 
-void UpdateDrawCube3D() {
+void RenderCube() {
+  if (shaderUpdated) {
+    // ReloadShaders();
+  }
+
+  float time = GetTime();
+
   UpdateCamera(&camera, CAMERA_ORBITAL);
   BeginMode3D(camera);
+
+  SetShaderValue(shader, shaderLocUTime, &time, SHADER_UNIFORM_FLOAT);
+  BeginShaderMode(shader);
+
   DrawCube(cubePos, 2.0f, 2.0f, 2.0f, RED);
   DrawCubeWires(cubePos, 2.0f, 2.0f, 2.0f, WHITE);
+
+  EndShaderMode();
+
   EndMode3D();
 }
 
-// SHADERS
-// 1. Setup shader constants
-// 2. Load / Unload - Refresh mechanisms
-// 3. Render cube with shader
-// 4. File watchers setup for shader files
-// 5. Setup hot reloading
-
 // UTILS
 
-void DrawDebugText() {
-  DrawText("Shader text here...", 10, 10, 10, Fade(WHITE, 0.5f));
+void RenderText() {
+  DrawText(fragmentShader, 10, 10, 10, Fade(BLUE, 0.5f));
   DrawFPS(10, WIDTH - 30);
 }
 
 int main(void) {
-  InitWindow(WIDTH, HEIGHT, "[shadereditor]");
   SetWindowState(FLAG_MSAA_4X_HINT);
+  InitWindow(WIDTH, HEIGHT, "[shadereditor]");
   SetTargetFPS(GetMonitorRefreshRate(GetCurrentMonitor()));
+  LoadShaders();
 
   while (!WindowShouldClose()) {
     BeginDrawing();
-    ClearBackground(BLACK);
+    ClearBackground(BLANK);
 
-    UpdateDrawCube3D();
-    DrawDebugText();
+    RenderCube();
+    RenderText();
 
     EndDrawing();
   }
 
+  if (shaderLoaded) {
+    ClearShaders();
+  }
   CloseWindow();
 
   return 0;
